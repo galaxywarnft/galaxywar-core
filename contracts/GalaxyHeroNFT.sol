@@ -1225,8 +1225,6 @@ interface IHeroNFT is IERC721 {
 
     function getHeroInfo(uint tokenId) external view returns (uint32, uint32, uint32, uint32);
 
-    function setChainId(uint256 value) external;
-
     function addRareHeroInventory(uint32 id, uint32 quality, uint256 amount) external;
 
     function subRareHeroInventory(uint32 id, uint32 quality, uint256 amount) external;
@@ -1367,7 +1365,6 @@ contract GalaxyHeroNFT is Ownable, HasMinters, ERC721Enumerable, IHeroNFT {
     //
     Counters.Counter private _tokenIds;
     string public baseTokenURI;
-    uint256 private chainId;
     uint32 private RAREHERO = 3;
 
     struct HeroInfo {
@@ -1395,15 +1392,22 @@ contract GalaxyHeroNFT is Ownable, HasMinters, ERC721Enumerable, IHeroNFT {
         baseTokenURI = baseURI;
     }
 
-    function setChainId(uint256 _chainId) override public onlyOwner {
-        chainId = _chainId * 100000000000;
-    }
-
     function tokensOfOwner(address owner) public view returns (uint256[] memory){
         uint count = balanceOf(owner);
         uint256[] memory tokenIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             tokenIds[i] = tokenOfOwnerByIndex(owner, i);
+        }
+        return (tokenIds);
+    }
+
+    function tokensOfOwnerPage(address owner, uint32 pageIndex, uint32 pageSize) public view returns (uint256[] memory){
+        uint256[] memory tokenIds = new uint256[](pageSize);
+        uint max = ERC721.balanceOf(owner);
+        for (uint32 i = 0; i < pageSize; i++) {
+            if ( i+pageIndex*pageSize < max ) {
+                tokenIds[i] = tokenOfOwnerByIndex(owner, i+pageIndex*pageSize);
+            }
         }
         return (tokenIds);
     }
@@ -1524,7 +1528,11 @@ contract GalaxyHeroNFT is Ownable, HasMinters, ERC721Enumerable, IHeroNFT {
     }
 
     function getChainId() override public view returns (uint256){
-        require(chainId != 0, "chainId is 0");
+        uint256 chainId;
+        assembly {
+            chainId := chainid()
+        }
+        chainId = chainId * 100000000000;
         return (chainId);
     }
 
